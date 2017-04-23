@@ -77,9 +77,6 @@ def remap_interval(val,
     out = output_interval_start + (val - input_interval_start) * (b/a)
     return out
 
-remap_interval(.5, 0, 1, 0, 10)
-
-
 def color_map(val):
     """ Maps input value between -1 and 1 to an integer 0-255, suitable for
         use as an RGB color code.
@@ -189,6 +186,8 @@ class Audio():
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
+
+#    remap_interval(.5, 0, 1, 0, 10)
 
 #    generate_art("Images4/img")
 
