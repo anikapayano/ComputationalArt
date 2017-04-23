@@ -1,78 +1,48 @@
-""" TODO: Put your header comment here """
+""" Generate random art based on recursive functions.
+    Additional functions are root and squared
+
+    Building on for MP5, added Lamda functions and music visualizer
+
+    Author: Anika Payano"""
 
 import random
 import math
 from PIL import Image
+import alsaaudio
+import audioop
+import pygame
+import os
+
+base1 = lambda x,y,t: x
+base2 = lambda x,y,t: y
+base3 = lambda x,y,t: t
+prod = lambda x,y,t: x * y * t
+avg = lambda x,y,t: (x+y+t)/3
+cos_pi = lambda x,y,t: math.cos(math.pi* x)
+sin_pi = lambda x,y,t: math.sin(math.pi* x)
+squared = lambda x,y,t: x**2
+root = lambda x,y,t: math.sqrt(abs(x))
+functions = [base1, base2, base3, prod, avg, cos_pi, sin_pi, squared, root]
 
 
-def build_random_function(min_depth, max_depth):
+
+def build_random_function(depth):
     """ Builds a random function of depth at least min_depth and depth
-        at most max_depth (see assignment writeup for definition of depth
-        in this context)
+        at most max_depth with lambda functions
 
         min_depth: the minimum depth of the random function
         max_depth: the maximum depth of the random function
         returns: the randomly generated function represented as a nested list
-                 (see assignment writeup for details on the representation of
-                 these functions)
     """
-    rando = []
-    blocks = ["prod", "avg", "cos_pi", "sin_pi", "squared", "root"]
-    base = ['x', 'y']
-    if min_depth <= 1:
-        rando.append(base[random.randint(0,1)])
-        return rando
+    if depth <= 1: #base case
+        index = random.randint(0,2)
+        return functions[index]
     else:
-        i = random.randint(0,5)
-        rando.append(blocks[i])
-        rando.append(build_random_function(min_depth-1, max_depth-1))
-        if i < 2:
-            rando.append(build_random_function(min_depth-1, max_depth-1))
-        return rando
-
-build_random_function(3,7)
-
-
-def evaluate_random_function(f, x, y):
-    """ Evaluate the random function f with inputs x,y
-        Representation of the function f is defined in the assignment writeup
-
-        f: the function to evaluate
-        x: the value of x to be used to evaluate the function
-        y: the value of y to be used to evaluate the function
-        returns: the function value
-
-        >>> evaluate_random_function(["x"],-0.5, 0.75)
-        -0.5
-        >>> evaluate_random_function(["y"],0.1,0.02)
-        0.02
-    """
-    if f == ["x"]:
-        return x
-    elif f == ["y"]:
-        return y
-    elif f[0] == 'prod':
-        a1 = evaluate_random_function(f[1], x, y)
-        a2 = evaluate_random_function(f[2], x, y)
-        return a1 * a2
-    elif f[0] == 'avg':
-        b1 = evaluate_random_function(f[1], x, y)
-        b2 = evaluate_random_function(f[2], x, y)
-        return ((b1 + b2)/2)
-    elif f[0] == 'cos_pi':
-        c1 = evaluate_random_function(f[1], x, y)
-        return (math.cos(math.pi *c1))
-    elif f[0] == 'sin_pi':
-        d1 = evaluate_random_function(f[1], x, y)
-        return (math.sin(math.pi *d1))
-    elif f[0] == 'squared':
-        e1 = evaluate_random_function(f[1], x, y)
-        return e1**2
-    elif f[0] == 'root':
-        f1 = evaluate_random_function(f[1], x, y)
-        return math.sqrt(abs(f1))
-
-evaluate_random_function(['prod', ['sin_pi', ['y']], ['sin_pi', ['x']]], 1, 1)
+        index = random.randint(3,8)
+        funct1 = build_random_function(depth-1)
+        funct2 = build_random_function(depth-1)
+        funct3 = build_random_function(depth-1)
+        return lambda x, y, t: functions[index](funct1(x,y,t), funct2(x,y,t), funct3(x,y,t))
 
 
 def remap_interval(val,
@@ -151,7 +121,7 @@ def test_image(filename, x_size=350, y_size=350):
     im.save(filename)
 
 
-def generate_art(filename, x_size=350, y_size=350):
+def generate_art(filename, x_size=350, y_size=350, t_size = 51):
     """ Generate computational art and save as an image file.
 
         filename: string filename for image (should be .png)
@@ -161,35 +131,77 @@ def generate_art(filename, x_size=350, y_size=350):
     #red_function = ["x"]
     #green_function = ["y"]
     #blue_function = ["x"]
-    red_function = build_random_function(7, 9)
-    green_function = build_random_function(7, 9)
-    blue_function = build_random_function(7, 9)
+    depth = 7
+    red_function = build_random_function(depth)
+    green_function = build_random_function(depth)
+    blue_function = build_random_function(depth)
 
     # Create image and loop over all pixels
     im = Image.new("RGB", (x_size, y_size))
     pixels = im.load()
-    for i in range(x_size):
-        for j in range(y_size):
-            x = remap_interval(i, 0, x_size, -1, 1)
-            y = remap_interval(j, 0, y_size, -1, 1)
-            pixels[i, j] = (
-                    color_map(evaluate_random_function(red_function, x, y)),
-                    color_map(evaluate_random_function(green_function, x, y)),
-                    color_map(evaluate_random_function(blue_function, x, y))
-                    )
+    for k in range(t_size):
+        t = remap_interval(k, 0, t_size, -1, 1)
+        for i in range(x_size):
+            for j in range(y_size):
+                x = remap_interval(i, 0, x_size, -1, 1)
+                y = remap_interval(j, 0, y_size, -1, 1)
+                pixels[i, j] = (
+                        color_map(red_function(x, y, t)),
+                        color_map(green_function(x, y, t)),
+                        color_map(blue_function(x, y, t))
+                        )
 
-    im.save(filename)
+        im.save(filename + str(k) + ".png")
+        print("Image " + str(k) + " created")
+
+def imagelist(direc="Images"):
+    """
+    Converts all images in direc to pygame surfaces
+    """ # List all files in directory
+    files = [pygame.image.load("Images4" + os.sep + "img" + str(file_number) +
+        ".png") for file_number in range(0,51)]  # Load the images using pygame
+    return files
+
+
+class Audio():
+
+    def __init__(self):
+        """
+        Initializes a new Audio object.
+        """
+        self.inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE, 0)
+        self.inp.setchannels(1)
+        self.inp.setrate(16000)
+        self.inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+        self.inp.setperiodsize(160)
+
+    def get_volume(self):
+        """
+        Returns the volume level at the current time.
+        """
+        l, data = self.inp.read()  # Read the input data
+        if l:
+            return audioop.rms(data, 2)  # Returns the current volume
+        else:
+            return 0
 
 
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
 
-    # Create some computational art!
-    # TODO: Un-comment the generate_art function call after you
-    #       implement remap_interval and evaluate_random_function
-    generate_art("myart.png")
+#    generate_art("Images4/img")
 
-    # Test that PIL is installed correctly
-    # TODO: Comment or remove this function call after testing PIL install
-    # test_image("noise.png")
+    num_images = 50
+    screen = pygame.display.set_mode((350, 350))
+    audio = Audio()
+    images = imagelist()
+    running = True
+    while running:
+        level = int(audio.get_volume()/500)
+        current = images[level % num_images]
+        screen.blit(current, (0, 0))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:  # quits
+                running = False
+        pygame.display.flip()
